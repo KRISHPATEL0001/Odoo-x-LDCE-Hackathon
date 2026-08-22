@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { UserProfile } from './types.ts';
 import { AuthForm } from './components/AuthForm.tsx';
-import { ExplorerCard } from './components/ExplorerCard.tsx';
+import { DashboardPage } from './components/DashboardPage.tsx';
 import { TravelShowcase } from './components/TravelShowcase.tsx';
 import { Compass, Globe2, Plane } from 'lucide-react';
 
@@ -35,6 +35,10 @@ export default function App() {
       console.warn('Failed to clear localStorage', e);
     }
   };
+
+  if (currentUser) {
+    return <DashboardPage user={currentUser} onLogout={handleSignOutOrEdit} />;
+  }
 
   return (
     <div className="min-h-screen bg-[#fdfcf8] text-[#333533] flex flex-col selection:bg-[#d4a373]/20 selection:text-[#333533]">
@@ -78,14 +82,7 @@ export default function App() {
 
           {/* Right Column: User Auth & Registration Form (Page 1) */}
           <div className="lg:col-span-6 xl:col-span-5 flex flex-col justify-center">
-            {currentUser ? (
-              <ExplorerCard
-                user={currentUser}
-                onEditOrSignOut={handleSignOutOrEdit}
-              />
-            ) : (
-              <AuthForm onSuccess={handleAuthSuccess} />
-            )}
+            <AuthForm onSuccess={handleAuthSuccess} />
           </div>
         </div>
       </main>
