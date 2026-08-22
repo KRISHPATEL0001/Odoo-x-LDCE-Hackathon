@@ -1,0 +1,124 @@
+// GlobeTrotter Prisma Schema
+// NOTE: In Prisma 7, database URL is configured via prisma.config.ts, not here.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id          String        @id @default(uuid())
+  email       String        @unique
+  name        String
+  password    String?
+  avatarUrl   String?
+  bio         String?       @default("Passionate traveler exploring mountain trails and cultural hidden gems.")
+  homeCity    String?       @default("Mumbai, India")
+  travelStyle String?       @default("🎒 Adventure & Trekking")
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  trips       Trip[]
+  savedTrips  SavedTrip[]
+
+  @@map("users")
+}
+
+model Trip {
+  id              String         @id @default(uuid())
+  title           String
+  destination     String
+  country         String
+  flag            String         @default("✈️")
+  startDate       String
+  endDate         String
+  startsInDays    Int            @default(0)
+  progressPercent Int            @default(0)
+  coverImage      String
+  budget          Float          @default(0)
+  spent           Float          @default(0)
+  status          String         @default("upcoming") // upcoming | completed
+  companions      String         @default("Solo")      // stored as comma-separated or json string
+  notes           String?
+  activitiesCount Int            @default(0)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  userId          String?
+  user            User?          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activities      Activity[]
+  expenses        Expense[]
+
+  @@map("trips")
+}
+
+model Destination {
+  id            String      @id @default(uuid())
+  name          String
+  country       String
+  flag          String
+  category      String      // mountain | beach | cultural | city
+  image         String
+  rating        Float       @default(4.8)
+  reviewsCount  Int         @default(0)
+  avgCostPerDay Float       @default(0)
+  bestMonths    String
+  description   String
+  highlights    String      @default("") // stored as comma-separated or json
+  isSaved       Boolean     @default(false)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  savedBy       SavedTrip[]
+
+  @@map("destinations")
+}
+
+model SavedTrip {
+  id            String      @id @default(uuid())
+  userId        String
+  destinationId String
+  savedAt       DateTime    @default(now())
+
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  destination   Destination @relation(fields: [destinationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, destinationId])
+  @@map("saved_trips")
+}
+
+model Activity {
+  id          String   @id @default(uuid())
+  tripId      String
+  dayNumber   Int      @default(1)
+  title       String
+  time        String   @default("10:00")
+  location    String
+  category    String   @default("Sightseeing") // Relaxation | Sightseeing | Dining | Transport | Adventure
+  cost        Float    @default(0)
+  completed   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  trip        Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  @@map("activities")
+}
+
+model Expense {
+  id          String   @id @default(uuid())
+  tripId      String
+  category    String   // Flights | Lodging | Dining | Activities | Shopping
+  title       String
+  amount      Float    @default(0)
+  date        String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  trip        Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  @@map("expenses")
+}
