@@ -22,6 +22,7 @@ interface SuggestedActivity {
   image: string;
   description: string;
   difficulty: 'Easy' | 'Moderate' | 'Challenging';
+  mapsUrl?: string;
 }
 
 interface ActivitySuggestionsViewProps {
@@ -39,8 +40,8 @@ export const ActivitySuggestionsView: React.FC<ActivitySuggestionsViewProps> = (
   const suggestions: SuggestedActivity[] = [
     {
       id: 'sug-1',
-      title: 'Tandem Paragliding over Jungfrau & Lake Thun',
-      location: 'Interlaken, Switzerland',
+      title: 'Tandem Paragliding — Interlaken',
+      location: 'Skywings Paragliding, Hauptstrasse 15, 3800 Interlaken, Switzerland',
       category: 'Adventure',
       duration: '2.5 hours',
       rating: 4.98,
@@ -48,66 +49,111 @@ export const ActivitySuggestionsView: React.FC<ActivitySuggestionsViewProps> = (
       image: 'https://images.unsplash.com/photo-1507608869274-d3177c8bb4c7?auto=format&fit=crop&w=700&q=80',
       description: 'Soar with a certified pilot over turquoise alpine lakes and snowcapped Swiss peaks.',
       difficulty: 'Moderate',
+      mapsUrl: 'https://maps.google.com/?q=Skywings+Paragliding+Interlaken+Switzerland',
     },
     {
       id: 'sug-2',
-      title: 'Sacred Waterfall & Rice Terrace Walk',
-      location: 'Ubud, Bali',
+      title: 'Sacred Monkey Forest Sanctuary Walk',
+      location: 'Jl. Monkey Forest, Padangtegal, Ubud, Kabupaten Gianyar, Bali 80571',
       category: 'Scenic',
-      duration: '4 hours',
-      rating: 4.92,
-      cost: 2800,
+      duration: '2 hours',
+      rating: 4.65,
+      cost: 800,
       image: 'https://images.unsplash.com/photo-1518548419970-58e3b4079ab2?auto=format&fit=crop&w=700&q=80',
-      description: 'Hidden cascade pools surrounded by jungle canopy and centuries-old Subak water channels.',
+      description: 'Ancient Hindu temples hidden among towering fig trees and friendly macaques in Ubud.',
       difficulty: 'Easy',
+      mapsUrl: 'https://maps.google.com/?q=Mandapa+Ritz+Carlton+Reserve+Ubud+Bali',
     },
     {
       id: 'sug-3',
-      title: 'Private Louvre After-Hours Curator Tour',
-      location: 'Paris, France',
+      title: 'Louvre Museum Skip-the-Line Tour',
+      location: 'Rue de Rivoli, 75001 Paris, France',
       category: 'Culture',
       duration: '3 hours',
-      rating: 4.95,
-      cost: 8500,
+      rating: 4.80,
+      cost: 6500,
       image: 'https://images.unsplash.com/photo-1499856871958-5b9627545d1a?auto=format&fit=crop&w=700&q=80',
-      description: 'Skip the daytime crowds and admire masterpieces under dramatic museum lighting.',
+      description: 'Guided tour of da Vinci masterpieces, Egyptian antiquities & the Mona Lisa Gallery.',
       difficulty: 'Easy',
+      mapsUrl: 'https://maps.google.com/?q=Louvre+Museum+Paris+France',
     },
     {
       id: 'sug-4',
-      title: 'Old Manali Apple Orchard Organic Brunch',
-      location: 'Manali, India',
+      title: 'Café Lota — NCMA Restaurant',
+      location: 'National Crafts Museum, Bhairon Marg, Pragati Maidan, New Delhi 110001',
       category: 'Food',
-      duration: '2 hours',
-      rating: 4.88,
-      cost: 1600,
+      duration: '1.5 hours',
+      rating: 4.6,
+      cost: 1200,
       image: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=700&q=80',
-      description: 'Farm-to-table Himalayan sourdough, fresh cider, and wildflower honey with panoramic mountain views.',
+      description: 'Award-winning café celebrating regional Indian cuisine inside the National Crafts Museum.',
       difficulty: 'Easy',
+      mapsUrl: 'https://maps.google.com/?q=Cafe+Lota+National+Crafts+Museum+New+Delhi',
     },
     {
       id: 'sug-5',
-      title: 'Sunset Desert Dune Buggy & Bedouin Camp',
-      location: 'Dubai, UAE',
+      title: 'Dubai Desert Safari & Bedouin Dinner',
+      location: 'Desert Rose Tourism, 37 Financial Centre Rd, Dubai, UAE',
       category: 'Adventure',
-      duration: '5 hours',
-      rating: 4.91,
+      duration: '6 hours',
+      rating: 4.88,
       cost: 9200,
       image: 'https://images.unsplash.com/photo-1451337516015-6b6e9a44a8a3?auto=format&fit=crop&w=700&q=80',
-      description: 'High-octane red dune cruising followed by traditional oud music and stargazing.',
+      description: 'Dune bashing, camel riding, and starlit Bedouin camp dinner in the Lahbab desert.',
       difficulty: 'Moderate',
+      mapsUrl: 'https://maps.google.com/?q=Al+Maha+Desert+Resort+Dubai+UAE',
     },
     {
       id: 'sug-6',
-      title: 'Zen Bamboo Forest Morning Tea Ceremony',
-      location: 'Kyoto, Japan',
-      category: 'Relaxation',
-      duration: '2.5 hours',
-      rating: 4.97,
-      cost: 4200,
+      title: 'Arashiyama Bamboo Grove Morning Walk',
+      location: 'Sagatenryuji Susukinobabacho, Ukyo Ward, Kyoto 616-8385, Japan',
+      category: 'Scenic',
+      duration: '1.5 hours',
+      rating: 4.75,
+      cost: 0,
       image: 'https://images.unsplash.com/photo-1503899036084-c55cdd92da26?auto=format&fit=crop&w=700&q=80',
-      description: 'Meditative matcha preparation inside a private Arashiyama heritage garden.',
+      description: 'Walk through the iconic towering bamboo corridor in Arashiyama — best at sunrise.',
       difficulty: 'Easy',
+      mapsUrl: 'https://maps.google.com/?q=Arashiyama+Bamboo+Grove+Kyoto+Japan',
+    },
+    {
+      id: 'sug-7',
+      title: 'Taj Lake Palace — Royal Dinner Cruise',
+      location: 'Lake Pichola, Udaipur, Rajasthan 313001, India',
+      category: 'Relaxation',
+      duration: '3 hours',
+      rating: 4.95,
+      cost: 8500,
+      image: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?auto=format&fit=crop&w=700&q=80',
+      description: 'Dine on Rajasthani cuisine while gliding across Lake Pichola with views of the City Palace.',
+      difficulty: 'Easy',
+      mapsUrl: 'https://maps.google.com/?q=Taj+Lake+Palace+Udaipur+Rajasthan',
+    },
+    {
+      id: 'sug-8',
+      title: 'Colosseum Underground Private Tour',
+      location: 'Piazza del Colosseo 1, 00184 Roma RM, Italy',
+      category: 'Culture',
+      duration: '2 hours',
+      rating: 4.90,
+      cost: 7800,
+      image: 'https://images.unsplash.com/photo-1552832230-c0197dd311b5?auto=format&fit=crop&w=700&q=80',
+      description: 'Exclusive underground access to gladiator passages beneath the ancient Roman arena.',
+      difficulty: 'Easy',
+      mapsUrl: 'https://maps.google.com/?q=Colosseum+Rome+Italy',
+    },
+    {
+      id: 'sug-9',
+      title: 'Noma-Style Tasting Menu — Copenhagen',
+      location: 'Refshalevej 96, 1432 Copenhagen, Denmark',
+      category: 'Food',
+      duration: '3 hours',
+      rating: 4.97,
+      cost: 22000,
+      image: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=700&q=80',
+      description: 'Legendary Nordic fine-dining experience; 20-course hyper-seasonal ingredient journey.',
+      difficulty: 'Easy',
+      mapsUrl: 'https://maps.google.com/?q=Noma+Restaurant+Copenhagen+Denmark',
     },
   ];
 
@@ -185,18 +231,30 @@ export const ActivitySuggestionsView: React.FC<ActivitySuggestionsViewProps> = (
                 </div>
 
                 <div className="p-5">
-                  <div className="flex items-center gap-1.5 text-xs text-[#7f8c8d] mb-1">
-                    <MapPin className="w-3.5 h-3.5 text-[#5d6d5a]" />
-                    <span>{sug.location}</span>
+                  <div className="flex items-start gap-1.5 text-xs text-[#7f8c8d] mb-1">
+                    <MapPin className="w-3.5 h-3.5 text-[#5d6d5a] mt-0.5 shrink-0" />
+                    <span className="line-clamp-2 leading-snug">{sug.location}</span>
                   </div>
 
                   <h3 className="font-serif font-bold text-base text-[#2d3436] mb-2 leading-snug">
                     {sug.title}
                   </h3>
 
-                  <p className="text-xs text-[#7f8c8d] line-clamp-2 leading-relaxed mb-4">
+                  <p className="text-xs text-[#7f8c8d] line-clamp-2 leading-relaxed mb-3">
                     {sug.description}
                   </p>
+
+                  {sug.mapsUrl && (
+                    <a
+                      href={sug.mapsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-[10px] font-semibold text-[#5d6d5a] hover:text-[#4a5748] hover:underline mb-3"
+                    >
+                      <MapPin className="w-3 h-3" />
+                      View on Google Maps
+                    </a>
+                  )}
 
                   <div className="flex items-center justify-between text-xs pt-3 border-t border-[#e0e0d5]/60">
                     <span className="flex items-center gap-1 text-[#7f8c8d]">

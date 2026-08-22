@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { UserProfile, DashboardTab, Trip, Destination } from '../types.ts';
 import { INITIAL_TRIPS, FEATURED_DESTINATIONS } from '../data/mockData.ts';
 import { api } from '../services/api.ts';
+import { getDestinationDailyBudget } from '../utils/budgetEstimator.ts';
 import { Sidebar } from './dashboard/Sidebar.tsx';
 import { TopNavBar } from './dashboard/TopNavBar.tsx';
 import { DashboardHero } from './dashboard/DashboardHero.tsx';
@@ -165,6 +166,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   };
 
   const handlePlanTripForPlace = (place: any) => {
+    const estimatedDailyBudget = getDestinationDailyBudget(place.name + ' ' + (place.country || ''));
     setPrefillDestination({
       id: `place-${place.id}`,
       name: place.name,
@@ -175,7 +177,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         'https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=800&q=80',
       rating: 4.9,
       reviewsCount: 1100,
-      avgCostPerDay: 7000,
+      avgCostPerDay: estimatedDailyBudget,
       bestMonths: 'Year-round',
       description: `Adventure in ${place.name}, ${place.country}.`,
       highlights: ['Sightseeing', 'Culture', 'Local spots'],
@@ -188,6 +190,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
   const handleSelectPlaceForMap = (place: any) => {
     if (!destinations.some((d) => d.name.toLowerCase() === place.name.toLowerCase())) {
+      const estimatedDailyBudget = getDestinationDailyBudget(place.name + ' ' + (place.country || ''));
       setDestinations((prev) => [
         {
           id: `place-map-${place.id}`,
@@ -199,7 +202,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
             'https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=800&q=80',
           rating: 4.9,
           reviewsCount: 1100,
-          avgCostPerDay: 7000,
+          avgCostPerDay: estimatedDailyBudget,
           bestMonths: 'Year-round',
           description: `Explore ${place.name}, ${place.country}.`,
           highlights: ['Local landmarks', 'Culinary culture'],

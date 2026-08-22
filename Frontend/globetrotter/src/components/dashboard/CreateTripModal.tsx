@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Trip, Destination } from '../../types.ts';
 import { api, PlaceItem } from '../../services/api.ts';
 import { parseDateSafe, formatDateReadable, calculateTripDurationDays } from '../../utils/itineraryHelpers.ts';
+import { getDestinationDailyBudget } from '../../utils/budgetEstimator.ts';
 import {
   Compass,
   Calendar,
@@ -36,12 +37,13 @@ export const CreateTripModal: React.FC<CreateTripModalProps> = ({
   const [flag, setFlag] = useState('✈️');
   const [startDate, setStartDate] = useState('2025-07-10');
   const [endDate, setEndDate] = useState('2025-07-18');
-  const [budget, setBudget] = useState(75000);
+  const [budget, setBudget] = useState(0);
   const [companions, setCompanions] = useState('Solo / Friends');
   const [coverImage, setCoverImage] = useState(
     'https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=800&q=80'
   );
   const [notes, setNotes] = useState('');
+  const [isBudgetManuallySet, setIsBudgetManuallySet] = useState(false);
 
   // Places Search autocomplete state
   const [placeResults, setPlaceResults] = useState<PlaceItem[]>([]);
@@ -51,20 +53,25 @@ export const CreateTripModal: React.FC<CreateTripModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
+      setIsBudgetManuallySet(false);
       if (prefillDestination) {
         setTitle(`${prefillDestination.name} Escape`);
         setDestination(prefillDestination.name);
         setCountry(prefillDestination.country);
         setFlag(prefillDestination.flag || '✈️');
         setCoverImage(prefillDestination.image);
-        setBudget(prefillDestination.avgCostPerDay ? prefillDestination.avgCostPerDay * 7 : 75000);
+        const days = calculateTripDurationDays(startDate, endDate);
+        const dailyRate = prefillDestination.avgCostPerDay
+          ? prefillDestination.avgCostPerDay
+          : getDestinationDailyBudget(prefillDestination.name + ' ' + prefillDestination.country);
+        setBudget(Math.round(dailyRate * Math.max(1, days)));
       } else {
         setTitle('');
         setDestination('');
         setCountry('');
         setFlag('✈️');
         setCoverImage('https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=800&q=80');
-        setBudget(75000);
+        setBudget(0);
       }
       setPlaceResults([]);
       setShowPlacesDropdown(false);
@@ -75,6 +82,13 @@ export const CreateTripModal: React.FC<CreateTripModalProps> = ({
     setDestination(val);
     if (!title || title.endsWith('Escape') || title.endsWith('Adventure') || title.endsWith('Journey')) {
       setTitle(`${val} Adventure`);
+    }
+
+    // Auto-estimate budget when destination changes (only if not manually set)
+    if (!isBudgetManuallySet && val.trim().length >= 2) {
+      const days = calculateTripDurationDays(startDate, endDate);
+      const daily = getDestinationDailyBudget(val.trim() + ' ' + country);
+      setBudget(Math.round(daily * Math.max(1, days)));
     }
 
     if (val.trim().length >= 2) {
@@ -103,6 +117,12 @@ export const CreateTripModal: React.FC<CreateTripModalProps> = ({
     setFlag(place.flag || '🌍');
     if (!title || title.endsWith('Adventure')) {
       setTitle(`${place.name} Journey`);
+    }
+    // Auto-calculate budget for selected place
+    if (!isBudgetManuallySet) {
+      const days = calculateTripDurationDays(startDate, endDate);
+      const daily = getDestinationDailyBudget(place.name + ' ' + place.country);
+      setBudget(Math.round(daily * Math.max(1, days)));
     }
     setShowPlacesDropdown(false);
   };
@@ -276,7 +296,14 @@ export const CreateTripModal: React.FC<CreateTripModalProps> = ({
                 type="date"
                 required
                 value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
+                onChange={(e) => {
+                  setStartDate(e.target.value);
+                  if (!isBudgetManuallySet && destination) {
+                    const days = calculateTripDurationDays(e.target.value, endDate);
+                    const daily = getDestinationDailyBudget(destination + ' ' + country);
+                    setBudget(Math.round(daily * Math.max(1, days)));
+                  }
+                }}
                 className="w-full px-4 py-2.5 rounded-xl border border-[#e0e0d5] bg-white text-sm focus:outline-none focus:border-[#5d6d5a] text-[#2d3436]"
               />
             </div>
@@ -288,7 +315,14 @@ export const CreateTripModal: React.FC<CreateTripModalProps> = ({
                 type="date"
                 required
                 value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
+                onChange={(e) => {
+                  setEndDate(e.target.value);
+                  if (!isBudgetManuallySet && destination) {
+                    const days = calculateTripDurationDays(startDate, e.target.value);
+                    const daily = getDestinationDailyBudget(destination + ' ' + country);
+                    setBudget(Math.round(daily * Math.max(1, days)));
+                  }
+                }}
                 className="w-full px-4 py-2.5 rounded-xl border border-[#e0e0d5] bg-white text-sm focus:outline-none focus:border-[#5d6d5a] text-[#2d3436]"
               />
             </div>
@@ -307,15 +341,27 @@ export const CreateTripModal: React.FC<CreateTripModalProps> = ({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-[10px] uppercase font-bold tracking-wider text-[#7f8c8d] mb-1">
-                Target Budget ({currency})
+              <label className="block text-[10px] uppercase font-bold tracking-wider text-[#7f8c8d] mb-1 flex items-center gap-1">
+                <span>Target Budget ({currency})</span>
+                {!isBudgetManuallySet && destination && (
+                  <span className="text-[#5d6d5a] text-[9px] bg-[#5d6d5a]/10 px-1.5 py-0.5 rounded-full">Auto-estimated</span>
+                )}
               </label>
               <input
                 type="number"
                 value={budget}
-                onChange={(e) => setBudget(Number(e.target.value))}
+                onChange={(e) => {
+                  setBudget(Number(e.target.value));
+                  setIsBudgetManuallySet(true);
+                }}
+                placeholder={destination ? 'Auto-calculated' : 'Enter budget'}
                 className="w-full px-4 py-2.5 rounded-xl border border-[#e0e0d5] bg-white text-sm focus:outline-none focus:border-[#5d6d5a] text-[#2d3436]"
               />
+              {!isBudgetManuallySet && destination && (
+                <p className="text-[10px] text-[#5d6d5a] mt-1">
+                  ≈ {currency}{getDestinationDailyBudget(destination + ' ' + country).toLocaleString()}/day × {Math.max(1, calculateTripDurationDays(startDate, endDate))} days
+                </p>
+              )}
             </div>
             <div>
               <label className="block text-[10px] uppercase font-bold tracking-wider text-[#7f8c8d] mb-1">
