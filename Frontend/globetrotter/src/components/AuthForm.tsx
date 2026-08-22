@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { UserProfile, AuthMode } from '../types.ts';
+import { api } from '../services/api.ts';
 import { AvatarUploader } from './AvatarUploader.tsx';
 import {
   User,
@@ -37,6 +38,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({ onSuccess }) => {
   const [rememberMe, setRememberMe] = useState(true);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [resetMessage, setResetMessage] = useState<string | null>(null);
 
   const calculatePasswordStrength = (pass: string) => {
     if (!pass) return 0;
@@ -92,20 +94,26 @@ export const AuthForm: React.FC<AuthFormProps> = ({ onSuccess }) => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
 
     setIsSubmitting(true);
+    setErrors({});
 
-    setTimeout(() => {
-      const profile: UserProfile = {
-        name: mode === 'signup' ? name.trim() : name.trim() || 'Explorer',
-        email: email.trim(),
-        avatarUrl: avatarUrl,
-        travelStyle: mode === 'signup' ? travelStyle : undefined,
-        createdAt: new Date().toISOString(),
-      };
+    try {
+      let profile: UserProfile;
+      if (mode === 'signup') {
+        profile = await api.register({
+          name: name.trim(),
+          email: email.trim(),
+          password,
+          avatarUrl,
+          travelStyle,
+        });
+      } else {
+        profile = await api.login(email.trim(), password);
+      }
 
       try {
         localStorage.setItem('globetrotter_user', JSON.stringify(profile));
@@ -115,7 +123,11 @@ export const AuthForm: React.FC<AuthFormProps> = ({ onSuccess }) => {
 
       setIsSubmitting(false);
       onSuccess(profile);
-    }, 600);
+    } catch (err: any) {
+      setIsSubmitting(false);
+      const errMsg = err?.message || 'Authentication failed. Please verify your credentials.';
+      setErrors({ form: errMsg });
+    }
   };
 
   const handleAutofillDemo = () => {
@@ -209,6 +221,16 @@ export const AuthForm: React.FC<AuthFormProps> = ({ onSuccess }) => {
       </header>
 
       <form onSubmit={handleSubmit} className="space-y-4">
+        {errors.form && (
+          <div
+            id="auth-error-banner"
+            className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold flex items-start gap-2.5 animate-shake"
+          >
+            <AlertCircle className="w-4 h-4 shrink-0 text-rose-500 mt-0.5" />
+            <span>{errors.form}</span>
+          </div>
+        )}
+
         {/* Photo Upload Section (Mandatory for Signup / Onboarding) */}
         {mode === 'signup' && (
           <div className="pb-1 border-b border-[#e0e0d5]/60">
@@ -305,13 +327,25 @@ export const AuthForm: React.FC<AuthFormProps> = ({ onSuccess }) => {
             {mode === 'login' && (
               <button
                 type="button"
-                className="text-[11px] text-[#d4a373] hover:text-[#c69260] font-semibold hover:underline absolute top-0 right-2 z-10"
-                onClick={() => alert('Password reset link will be sent to your registered email.')}
+                className="text-[11px] text-[#d4a373] hover:text-[#c69260] font-semibold hover:underline absolute top-0 right-2 z-10 cursor-pointer"
+                onClick={() => setResetMessage('Password reset link has been dispatched to your email.')}
               >
                 Forgot password?
               </button>
             )}
           </div>
+          {resetMessage && (
+            <div className="mb-2 p-2 bg-[#f5f5f0] border border-[#d4a373]/50 text-[#5d6d5a] rounded-xl text-xs flex items-center justify-between">
+              <span>{resetMessage}</span>
+              <button
+                type="button"
+                onClick={() => setResetMessage(null)}
+                className="text-xs text-[#7f8c8d] hover:text-[#2d3436] font-bold"
+              >
+                ✕
+              </button>
+            </div>
+          )}
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-[#7f8c8d]">
               <Lock className="w-4 h-4" />

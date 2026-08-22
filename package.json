@@ -1,0 +1,28 @@
+{
+  "name": "odoo-x-ldce-hackathon",
+  "version": "1.0.0",
+  "description": "GlobeTrotter is a personalized travel planning platform designed to help users plan, organize, budget, visualize, and share multi-city trips from a single platform.",
+  "scripts": {
+    "install:all": "cmd /c \"cd Backend && npm install && cd ../Frontend/globetrotter && npm install\"",
+    "setup": "cmd /c \"cd Backend && npm run setup\"",
+    "dev:frontend": "npm --prefix Frontend/globetrotter run dev",
+    "dev:backend": "npm --prefix Backend run dev",
+    "start:backend": "npm --prefix Backend start",
+    "build:frontend": "npm --prefix Frontend/globetrotter run build",
+    "lint:frontend": "npm --prefix Frontend/globetrotter run lint",
+    "prisma:generate": "npm --prefix Backend run prisma:generate",
+    "prisma:push": "npm --prefix Backend run prisma:push",
+    "prisma:seed": "npm --prefix Backend run prisma:seed"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/KRISHPATEL0001/Odoo-x-LDCE-Hackathon.git"
+  },
+  "keywords": ["travel", "planner", "react", "express", "prisma", "hackathon"],
+  "author": "GlobeTrotter Team",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/KRISHPATEL0001/Odoo-x-LDCE-Hackathon/issues"
+  },
+  "homepage": "https://github.com/KRISHPATEL0001/Odoo-x-LDCE-Hackathon#readme"
+}

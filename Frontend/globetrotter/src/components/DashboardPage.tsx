@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { UserProfile, DashboardTab, Trip, Destination } from '../types.ts';
 import { INITIAL_TRIPS, FEATURED_DESTINATIONS } from '../data/mockData.ts';
+import { api } from '../services/api.ts';
 import { Sidebar } from './dashboard/Sidebar.tsx';
 import { TopNavBar } from './dashboard/TopNavBar.tsx';
 import { DashboardHero } from './dashboard/DashboardHero.tsx';
@@ -14,6 +15,9 @@ import { TripHistoryView } from './dashboard/TripHistoryView.tsx';
 import { SavedTripsView } from './dashboard/SavedTripsView.tsx';
 import { ProfileSettingsView } from './dashboard/ProfileSettingsView.tsx';
 import { CreateTripModal } from './dashboard/CreateTripModal.tsx';
+import { InteractiveMapView } from './dashboard/InteractiveMapView.tsx';
+import { AIAssistantView } from './dashboard/AIAssistantView.tsx';
+import { AIFloatingWidget } from './dashboard/AIFloatingWidget.tsx';
 
 interface DashboardPageProps {
   user: UserProfile | null;
@@ -26,10 +30,11 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 }) => {
   const [currentTab, setCurrentTab] = useState<DashboardTab>('dashboard');
   const [isSidebarOpenMobile, setIsSidebarOpenMobile] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [currency, setCurrency] = useState('₹');
 
   // Interactive app state
-  const [trips, setTrips] = useState<Trip[]>(INITIAL_TRIPS);
+  const [trips, setTrips] = useState<Trip[]>([]);
   const [destinations, setDestinations] = useState<Destination[]>(FEATURED_DESTINATIONS);
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(user);
 
@@ -40,17 +45,52 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   const [catalogSearchTerm, setCatalogSearchTerm] = useState('');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+  // Sync currentUser with incoming prop
+  useEffect(() => {
+    if (user) {
+      setCurrentUser(user);
+    }
+  }, [user]);
+
+  // Load trips and user-specific wishlist from Backend API
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const userId = currentUser?.id || (currentUser as any)?.id;
+        const [fetchedTrips, fetchedDests] = await Promise.all([
+          api.getTrips(userId),
+          api.getDestinations(undefined, undefined, userId),
+        ]);
+        setTrips(fetchedTrips || []);
+        if (fetchedDests && fetchedDests.length > 0) {
+          setDestinations(fetchedDests);
+        }
+      } catch (err) {
+        console.warn('API fetch error:', err);
+      }
+    }
+    if (currentUser) {
+      loadData();
+    }
+  }, [currentUser]);
+
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3500);
   };
 
   // Handlers
-  const handleToggleSaveDestination = (destId: string) => {
+  const handleToggleSaveDestination = async (destId: string) => {
+    const userId = currentUser?.id;
     setDestinations((prev) =>
       prev.map((d) => (d.id === destId ? { ...d, isSaved: !d.isSaved } : d))
     );
     showToast('Wishlist updated!');
+    try {
+      await api.toggleSaveDestination(destId, userId);
+    } catch (e) {
+      console.warn('Failed to toggle save on backend:', e);
+    }
   };
 
   const handlePlanForDestination = (dest: Destination) => {
@@ -58,11 +98,18 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     setIsCreateTripOpen(true);
   };
 
-  const handleCreateTrip = (newTrip: Trip) => {
-    setTrips([newTrip, ...trips]);
-    showToast(`Trip to ${newTrip.destination} created!`);
-    setCurrentTab('itinerary-planner');
-    setSelectedTripForItinerary(newTrip.id);
+  const handleCreateTrip = async (newTrip: Trip) => {
+    try {
+      const userId = currentUser?.id;
+      const created = await api.createTrip({ ...newTrip, userId }, userId);
+      const tripToAdd = created || newTrip;
+      setTrips((prev) => [tripToAdd, ...prev]);
+      showToast(`Trip to ${tripToAdd.destination} created!`);
+      setCurrentTab('itinerary-planner');
+      setSelectedTripForItinerary(tripToAdd.id);
+    } catch (err: any) {
+      showToast(`Failed to create trip: ${err.message || 'Error'}`);
+    }
   };
 
   const handleSelectTripFromUpcoming = (trip: Trip) => {
@@ -80,22 +127,108 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     setCurrentTab('browse-destinations');
   };
 
-  const handleAddActivitySuggestion = (activityTitle: string) => {
-    showToast(`Added "${activityTitle}" to itinerary!`);
+  const handleAddActivitySuggestion = async (activityTitle: string) => {
+    const targetTrip = trips.find((t) => t.status === 'upcoming') || trips[0];
+    if (targetTrip) {
+      try {
+        await api.createActivity(targetTrip.id, {
+          title: activityTitle,
+          dayNumber: 1,
+          time: '11:00',
+          location: targetTrip.destination,
+          category: 'Sightseeing',
+          cost: 1500,
+        });
+        showToast(`Added "${activityTitle}" to ${targetTrip.destination} itinerary!`);
+        setSelectedTripForItinerary(targetTrip.id);
+      } catch {
+        showToast(`Added "${activityTitle}" to itinerary!`);
+      }
+    } else {
+      showToast(`Please create a trip first to save activities.`);
+      setPrefillDestination(null);
+      setIsCreateTripOpen(true);
+    }
   };
 
-  const handleUpdateProfile = (updated: Partial<UserProfile>) => {
+  const handleUpdateProfile = async (updated: Partial<UserProfile>) => {
     if (currentUser) {
-      setCurrentUser({ ...currentUser, ...updated });
+      const nextUser = { ...currentUser, ...updated };
+      setCurrentUser(nextUser);
+      try {
+        localStorage.setItem('globetrotter_user', JSON.stringify(nextUser));
+        await api.updateProfile(nextUser);
+      } catch (e) {
+        console.warn('Failed to sync profile to backend:', e);
+      }
     }
+  };
+
+  const handlePlanTripForPlace = (place: any) => {
+    setPrefillDestination({
+      id: `place-${place.id}`,
+      name: place.name,
+      country: place.country,
+      flag: place.flag || '🌍',
+      category: 'cultural',
+      image:
+        'https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=800&q=80',
+      rating: 4.9,
+      reviewsCount: 1100,
+      avgCostPerDay: 7000,
+      bestMonths: 'Year-round',
+      description: `Adventure in ${place.name}, ${place.country}.`,
+      highlights: ['Sightseeing', 'Culture', 'Local spots'],
+      isSaved: false,
+      lat: place.lat,
+      lon: place.lon,
+    });
+    setIsCreateTripOpen(true);
+  };
+
+  const handleSelectPlaceForMap = (place: any) => {
+    if (!destinations.some((d) => d.name.toLowerCase() === place.name.toLowerCase())) {
+      setDestinations((prev) => [
+        {
+          id: `place-map-${place.id}`,
+          name: place.name,
+          country: place.country,
+          flag: place.flag || '🌍',
+          category: 'cultural',
+          image:
+            'https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=800&q=80',
+          rating: 4.9,
+          reviewsCount: 1100,
+          avgCostPerDay: 7000,
+          bestMonths: 'Year-round',
+          description: `Explore ${place.name}, ${place.country}.`,
+          highlights: ['Local landmarks', 'Culinary culture'],
+          isSaved: false,
+          lat: place.lat,
+          lon: place.lon,
+        },
+        ...prev,
+      ]);
+    }
+    setCurrentTab('map');
   };
 
   const upcomingTrips = trips.filter((t) => t.status === 'upcoming');
   const completedTrips = trips.filter((t) => t.status === 'completed');
   const savedDestinations = destinations.filter((d) => d.isSaved);
-  const totalSpentAcrossAll = trips.reduce((acc, t) => acc + (t.spent || 0), 0);
+  const totalSpentAcrossAll = trips.reduce((acc, t) => acc + (Number(t.spent) || 0), 0);
+  const destinationsExplored = new Set(trips.map((t) => t.destination.trim())).size;
+  const nextUpcomingDestination = upcomingTrips[0]?.destination;
 
-  const userName = currentUser?.name || 'Krish Patel';
+  const userName = currentUser?.name || 'Explorer';
+
+  const handleToggleSidebar = () => {
+    if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+      setIsSidebarOpenMobile((prev) => !prev);
+    } else {
+      setIsSidebarCollapsed((prev) => !prev);
+    }
+  };
 
   return (
     <div className="flex h-screen bg-[#fdfcf8] text-[#333533] overflow-hidden font-sans">
@@ -110,6 +243,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         onLogout={onLogout}
         isOpenMobile={isSidebarOpenMobile}
         onCloseMobile={() => setIsSidebarOpenMobile(false)}
+        isCollapsed={isSidebarCollapsed}
+        onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
       />
 
       {/* Main Body */}
@@ -117,8 +252,10 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         {/* Top Navbar */}
         <TopNavBar
           user={currentUser}
-          onToggleSidebar={() => setIsSidebarOpenMobile(!isSidebarOpenMobile)}
+          onToggleSidebar={handleToggleSidebar}
           onSearch={handleHeroSearch}
+          onSelectPlaceForMap={handleSelectPlaceForMap}
+          onPlanTripForPlace={handlePlanTripForPlace}
           onLogout={onLogout}
           onOpenProfile={() => setCurrentTab('profile')}
           onOpenSettings={() => setCurrentTab('settings')}
@@ -149,14 +286,16 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                   userName={userName}
                   onSearch={handleHeroSearch}
                   onSelectPopular={handleHeroSelectPopular}
+                  onSelectPlace={handleSelectPlaceForMap}
                 />
 
                 {/* 2. 4 Stat Cards matching screenshot */}
                 <StatsOverview
                   upcomingCount={upcomingTrips.length}
                   completedCount={completedTrips.length}
-                  destinationsCount={18}
-                  totalSpent={totalSpentAcrossAll || 45230}
+                  destinationsCount={destinationsExplored}
+                  totalSpent={totalSpentAcrossAll}
+                  nextDestination={nextUpcomingDestination}
                   currency={currency}
                   onNavigate={(tab) => setCurrentTab(tab)}
                 />
@@ -172,6 +311,23 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                   }}
                 />
               </div>
+            )}
+
+            {currentTab === 'ai-assistant' && (
+              <AIAssistantView
+                onSaveAITrip={handleCreateTrip}
+                currency={currency}
+              />
+            )}
+
+            {currentTab === 'map' && (
+              <InteractiveMapView
+                destinations={destinations}
+                trips={trips}
+                currency={currency}
+                onPlanTrip={handlePlanForDestination}
+                onSelectTrip={handleSelectTripFromUpcoming}
+              />
             )}
 
             {currentTab === 'browse-destinations' && (
@@ -314,6 +470,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         prefillDestination={prefillDestination}
         currency={currency}
       />
+
+      {/* Global Floating AI Travel Copilot Widget */}
+      <AIFloatingWidget onOpenFullAssistant={() => setCurrentTab('ai-assistant')} />
     </div>
   );
 };

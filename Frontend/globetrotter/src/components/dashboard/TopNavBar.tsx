@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { UserProfile } from '../../types.ts';
+import { api, PlaceItem } from '../../services/api.ts';
 import {
   Menu,
   Bell,
@@ -12,12 +13,17 @@ import {
   Sparkles,
   Plane,
   CheckCircle,
+  MapPin,
+  Compass,
+  ArrowRight,
 } from 'lucide-react';
 
 interface TopNavBarProps {
   user: UserProfile | null;
   onToggleSidebar: () => void;
   onSearch: (query: string) => void;
+  onSelectPlaceForMap?: (place: PlaceItem) => void;
+  onPlanTripForPlace?: (place: PlaceItem) => void;
   onLogout: () => void;
   onOpenProfile: () => void;
   onOpenSettings: () => void;
@@ -27,6 +33,8 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
   user,
   onToggleSidebar,
   onSearch,
+  onSelectPlaceForMap,
+  onPlanTripForPlace,
   onLogout,
   onOpenProfile,
   onOpenSettings,
@@ -35,6 +43,13 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
   const [showNotifications, setShowNotifications] = useState(false);
   const [showMessages, setShowMessages] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+
+  // Live Places Search Dropdown
+  const [placeResults, setPlaceResults] = useState<PlaceItem[]>([]);
+  const [showPlacesDropdown, setShowPlacesDropdown] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const searchTimeoutRef = useRef<any>(null);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
 
   const notifRef = useRef<HTMLDivElement>(null);
   const msgRef = useRef<HTMLDivElement>(null);
@@ -52,15 +67,41 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
       if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
         setShowUserMenu(false);
       }
+      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
+        setShowPlacesDropdown(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const handleSearchChange = (val: string) => {
+    setSearchInput(val);
+    if (val.trim().length >= 2) {
+      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+      searchTimeoutRef.current = setTimeout(async () => {
+        setIsSearching(true);
+        try {
+          const results = await api.searchPlaces(val.trim());
+          setPlaceResults(results);
+          setShowPlacesDropdown(true);
+        } catch {
+          setPlaceResults([]);
+        } finally {
+          setIsSearching(false);
+        }
+      }, 200);
+    } else {
+      setPlaceResults([]);
+      setShowPlacesDropdown(false);
+    }
+  };
+
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchInput.trim()) {
       onSearch(searchInput.trim());
+      setShowPlacesDropdown(false);
     }
   };
 
@@ -71,7 +112,7 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
 
   return (
     <header className="h-16 border-b border-[#e0e0d5] bg-[#fdfcf8]/95 backdrop-blur-md px-4 sm:px-6 flex items-center justify-between sticky top-0 z-30">
-      {/* Left section: Sidebar toggle & Quick search */}
+      {/* Left section: Sidebar toggle & Global Geocoding Search */}
       <div className="flex items-center gap-3 sm:gap-4 flex-1 max-w-xl">
         <button
           id="btn-sidebar-toggle"
@@ -83,20 +124,76 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
           <Menu className="w-5 h-5" />
         </button>
 
-        {/* Global Quick Search */}
-        <form onSubmit={handleSearchSubmit} className="relative w-full max-w-md hidden sm:block">
-          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#7f8c8d]">
-            <Search className="w-4 h-4" />
-          </div>
-          <input
-            id="nav-search-input"
-            type="text"
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="Search trips, places, or activities..."
-            className="w-full pl-10 pr-4 py-2 bg-[#f5f5f0] text-sm text-[#2d3436] rounded-xl border border-transparent focus:border-[#5d6d5a] focus:bg-[#fdfcf8] focus:outline-none transition-all placeholder:text-[#a0a090]"
-          />
-        </form>
+        {/* Global Quick Search with Live Places Autocomplete */}
+        <div ref={searchContainerRef} className="relative w-full max-w-md hidden sm:block">
+          <form onSubmit={handleSearchSubmit} className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#7f8c8d]">
+              <Search className="w-4 h-4" />
+            </div>
+            <input
+              id="nav-search-input"
+              type="text"
+              value={searchInput}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              onFocus={() => {
+                if (placeResults.length > 0) setShowPlacesDropdown(true);
+              }}
+              placeholder="Search any destination, landmark, or city worldwide..."
+              className="w-full pl-10 pr-4 py-2 bg-[#f5f5f0] text-sm text-[#2d3436] rounded-xl border border-transparent focus:border-[#5d6d5a] focus:bg-[#fdfcf8] focus:outline-none transition-all placeholder:text-[#a0a090]"
+            />
+          </form>
+
+          {/* Autocomplete Dropdown */}
+          {showPlacesDropdown && placeResults.length > 0 && (
+            <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-[#e0e0d5] rounded-2xl shadow-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-150 max-h-72 overflow-y-auto">
+              <div className="px-3.5 py-2 text-[10px] uppercase font-bold tracking-wider text-[#7f8c8d] bg-[#f5f5f0]/80 border-b border-[#e0e0d5] flex items-center justify-between">
+                <span>Worldwide Locations</span>
+                <span className="text-[#5d6d5a]">Maps &amp; Geocoding API</span>
+              </div>
+              {placeResults.map((place) => (
+                <div
+                  key={place.id}
+                  className="px-3.5 py-2.5 hover:bg-[#f5f5f0] flex items-center justify-between transition-colors border-b border-[#e0e0d5]/40 last:border-0"
+                >
+                  <div
+                    onClick={() => {
+                      if (onSelectPlaceForMap) {
+                        onSelectPlaceForMap(place);
+                      } else {
+                        onSearch(place.name);
+                      }
+                      setShowPlacesDropdown(false);
+                    }}
+                    className="flex items-center gap-2.5 cursor-pointer flex-1"
+                  >
+                    <span className="text-lg">{place.flag}</span>
+                    <div>
+                      <div className="text-xs font-bold text-[#2d3436]">{place.name}</div>
+                      <div className="text-[11px] text-[#7f8c8d]">{place.country}</div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (onPlanTripForPlace) {
+                          onPlanTripForPlace(place);
+                        } else {
+                          onSearch(place.name);
+                        }
+                        setShowPlacesDropdown(false);
+                      }}
+                      className="px-2.5 py-1 rounded-lg bg-[#5d6d5a] hover:bg-[#4a5748] text-white text-[10px] font-bold transition-all shadow-2xs cursor-pointer"
+                    >
+                      Plan Trip
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Right section: Notification bell, messages, user avatar badge */}

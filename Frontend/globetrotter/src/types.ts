@@ -1,4 +1,5 @@
 export interface UserProfile {
+  id?: string;
   name: string;
   email: string;
   password?: string;
@@ -13,6 +14,8 @@ export type AuthMode = 'signup' | 'login';
 
 export type DashboardTab =
   | 'dashboard'
+  | 'ai-assistant'
+  | 'map'
   | 'browse-destinations'
   | 'itinerary-planner'
   | 'budget-planner'
@@ -26,6 +29,7 @@ export type DashboardTab =
 
 export interface Trip {
   id: string;
+  userId?: string;
   title: string;
   destination: string;
   country: string;
@@ -41,6 +45,8 @@ export interface Trip {
   companions: string[];
   notes?: string;
   activitiesCount?: number;
+  lat?: number;
+  lon?: number;
 }
 
 export interface Destination {
@@ -57,6 +63,8 @@ export interface Destination {
   description: string;
   highlights: string[];
   isSaved: boolean;
+  lat?: number;
+  lon?: number;
 }
 
 export interface ActivityItem {
@@ -74,4 +82,83 @@ export interface DayItinerary {
   date: string;
   theme: string;
   activities: ActivityItem[];
+}
+
+export interface TransitOption {
+  mode: string;
+  title: string;
+  duration: string;
+  cost: number;
+  provider: string;
+  frequency: string;
+}
+
+export interface PlaceToDiscover {
+  name: string;
+  category: string;
+  rating: number;
+  time: string;
+  description: string;
+  tip: string;
+  googleMapsUrl?: string;
+}
+
+export interface HotelRecommendation {
+  name: string;
+  tier: 'Luxury' | 'Boutique' | 'Comfort' | 'Budget';
+  rating: number;
+  pricePerNight: number;
+  area: string;
+  amenities: string[];
+  googleMapsUrl?: string;
+}
+
+export interface RestaurantRecommendation {
+  name: string;
+  cuisine: string;
+  rating: number;
+  priceLevel: '$' | '$$' | '$$$' | '$$$$';
+  mustTry: string;
+  neighborhood: string;
+  googleMapsUrl?: string;
+}
+
+export interface ReviewItem {
+  author: string;
+  location: string;
+  rating: number;
+  date: string;
+  text: string;
+  verified: boolean;
+}
+
+export interface AITripPlan {
+  title: string;
+  origin: string;
+  destination: string;
+  durationDays: number;
+  budgetLevel: string;
+  travelStyle: string;
+  companions: string;
+  flag: string;
+  country: string;
+  lat: number;
+  lon: number;
+  safetyScore: number;
+  currency: string;
+  plugType: string;
+  transitOptions: TransitOption[];
+  placesToDiscover: PlaceToDiscover[];
+  hotels: HotelRecommendation[];
+  restaurants: RestaurantRecommendation[];
+  reviews: ReviewItem[];
+  daySchedules: DayItinerary[];
+  costBreakdown: {
+    flights: number;
+    lodging: number;
+    foodAndDining: number;
+    activities: number;
+    total: number;
+  };
+  packingAdvice: string[];
 }

@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Trip } from '../../types.ts';
+import { api } from '../../services/api.ts';
 import {
   Wallet,
   PieChart,
@@ -37,56 +38,43 @@ export const BudgetPlannerView: React.FC<BudgetPlannerViewProps> = ({
   onChangeCurrency,
 }) => {
   const [selectedTripId, setSelectedTripId] = useState<string>(
-    trips[0]?.id ?? 'trip-swiss-alps'
+    trips[0]?.id || ''
   );
 
-  const [expenses, setExpenses] = useState<ExpenseItem[]>([
-    {
-      id: 'exp-1',
-      tripId: 'trip-swiss-alps',
-      category: 'Flights',
-      title: 'Zurich Return Flights',
-      amount: 38000,
-      date: 'May 02, 2025',
-    },
-    {
-      id: 'exp-2',
-      tripId: 'trip-swiss-alps',
-      category: 'Lodging',
-      title: 'Interlaken Chalet Booking (4 Nights)',
-      amount: 24000,
-      date: 'May 05, 2025',
-    },
-    {
-      id: 'exp-3',
-      tripId: 'trip-swiss-alps',
-      category: 'Activities',
-      title: 'Swiss Travel Pass Flex (4-Day)',
-      amount: 10000,
-      date: 'May 08, 2025',
-    },
-    {
-      id: 'exp-4',
-      tripId: 'trip-bali-getaway',
-      category: 'Lodging',
-      title: 'Ubud Private Pool Villa',
-      amount: 14500,
-      date: 'May 10, 2025',
-    },
-    {
-      id: 'exp-5',
-      tripId: 'trip-bali-getaway',
-      category: 'Activities',
-      title: 'Mount Batur Sunrise Guide',
-      amount: 5000,
-      date: 'May 12, 2025',
-    },
-  ]);
-
+  const [expenses, setExpenses] = useState<ExpenseItem[]>([]);
   const [showAddExpense, setShowAddExpense] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newAmount, setNewAmount] = useState<number>(2000);
   const [newCategory, setNewCategory] = useState<ExpenseItem['category']>('Dining');
+
+  // Keep selectedTripId in sync with available trips
+  useEffect(() => {
+    if (trips.length > 0) {
+      if (!selectedTripId || !trips.some((t) => t.id === selectedTripId)) {
+        setSelectedTripId(trips[0].id);
+      }
+    } else {
+      setSelectedTripId('');
+      setExpenses([]);
+    }
+  }, [trips, selectedTripId]);
+
+  // Load expenses from Backend when trip changes
+  useEffect(() => {
+    async function loadTripExpenses() {
+      if (selectedTripId) {
+        try {
+          const fetched = await api.getExpenses(selectedTripId);
+          setExpenses(fetched || []);
+        } catch {
+          setExpenses([]);
+        }
+      } else {
+        setExpenses([]);
+      }
+    }
+    loadTripExpenses();
+  }, [selectedTripId]);
 
   const currentTrip = trips.find((t) => t.id === selectedTripId) || trips[0];
   const tripExpenses = expenses.filter((e) => e.tripId === selectedTripId);
@@ -104,13 +92,11 @@ export const BudgetPlannerView: React.FC<BudgetPlannerViewProps> = ({
     { name: 'Shopping', icon: ShoppingBag, color: 'bg-purple-600', text: 'text-purple-700' },
   ];
 
-  const handleAddExpense = (e: React.FormEvent) => {
+  const handleAddExpense = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTitle.trim()) return;
 
-    const newItem: ExpenseItem = {
-      id: `exp-${Date.now()}`,
-      tripId: selectedTripId,
+    const expenseData = {
       category: newCategory,
       title: newTitle.trim(),
       amount: Number(newAmount) || 0,
@@ -121,10 +107,57 @@ export const BudgetPlannerView: React.FC<BudgetPlannerViewProps> = ({
       }),
     };
 
-    setExpenses([newItem, ...expenses]);
+    try {
+      const created = await api.createExpense(selectedTripId, expenseData);
+      setExpenses((prev) => [created || { ...expenseData, id: `exp-${Date.now()}`, tripId: selectedTripId }, ...prev]);
+    } catch {
+      const newItem: ExpenseItem = {
+        id: `exp-${Date.now()}`,
+        tripId: selectedTripId,
+        category: newCategory,
+        title: newTitle.trim(),
+        amount: Number(newAmount) || 0,
+        date: expenseData.date,
+      };
+      setExpenses([newItem, ...expenses]);
+    }
+
     setNewTitle('');
     setShowAddExpense(false);
   };
+
+  if (trips.length === 0) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-[#f5f5f0] border border-[#e0e0d5] rounded-3xl p-6 sm:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div>
+            <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-[#5d6d5a] mb-2">
+              <Wallet className="w-3.5 h-3.5 text-[#d4a373]" />
+              Travel Expense &amp; Budget Tracker
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-serif font-bold text-[#2d3436]">
+              Smart Trip Budget Planner
+            </h2>
+            <p className="text-xs sm:text-sm text-[#7f8c8d] mt-1 max-w-xl">
+              Keep expenses on track, monitor category caps, and itemize travel receipts.
+            </p>
+          </div>
+        </div>
+
+        <div className="bg-[#fdfcf8] border border-[#e0e0d5] rounded-3xl p-12 sm:p-16 text-center flex flex-col items-center justify-center shadow-xs">
+          <div className="w-16 h-16 rounded-3xl bg-[#5d6d5a]/10 text-[#5d6d5a] flex items-center justify-center mb-4">
+            <Wallet className="w-8 h-8 text-[#5d6d5a]" />
+          </div>
+          <h3 className="text-xl font-serif font-bold text-[#2d3436] mb-1.5">
+            No Active Trips Planned Yet
+          </h3>
+          <p className="text-xs sm:text-sm text-[#7f8c8d] max-w-md">
+            Once you create a journey, you will be able to log receipts, allocate budgets for flights, lodging, dining, and activities, and monitor your spend.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -158,7 +191,7 @@ export const BudgetPlannerView: React.FC<BudgetPlannerViewProps> = ({
           </select>
 
           <div className="flex items-center bg-white border border-[#e0e0d5] rounded-xl p-1 text-xs">
-            {['₹', '$', '€', '£'].map((curr) => (
+            {['₹', '$', '€', '£', '¥'].map((curr) => (
               <button
                 key={curr}
                 type="button"

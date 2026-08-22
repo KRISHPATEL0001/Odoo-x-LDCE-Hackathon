@@ -108,6 +108,8 @@ export const FEATURED_DESTINATIONS: Destination[] = [
     description: 'Breathtaking peaks, pristine turquoise lakes, and world-class alpine train routes.',
     highlights: ['Matterhorn views', 'Glacier 3000', 'Lake Thun cruise', 'Fondue tasting'],
     isSaved: true,
+    lat: 46.6863,
+    lon: 7.8632,
   },
   {
     id: 'dest-bali',
@@ -123,6 +125,8 @@ export const FEATURED_DESTINATIONS: Destination[] = [
     description: 'Tropical paradise featuring terraced rice paddies, spiritual temples, and vibrant coastal beach clubs.',
     highlights: ['Tegallalang Rice Terraces', 'Uluwatu Sunset Temple', 'Mount Batur Sunrise Hike', 'Nusa Penida'],
     isSaved: true,
+    lat: -8.5069,
+    lon: 115.2625,
   },
   {
     id: 'dest-paris',
@@ -138,6 +142,8 @@ export const FEATURED_DESTINATIONS: Destination[] = [
     description: 'The City of Light offers timeless art museums, Haussmannian architecture, and refined boulangeries.',
     highlights: ['Eiffel Tower twilight', 'Louvre Museum', 'Montmartre cafes', 'Seine river cruise'],
     isSaved: true,
+    lat: 48.8566,
+    lon: 2.3522,
   },
   {
     id: 'dest-manali',
@@ -153,6 +159,8 @@ export const FEATURED_DESTINATIONS: Destination[] = [
     description: 'High-altitude Himalayan escape dotted with apple orchards, cedar pine forests, and hot sulfur springs.',
     highlights: ['Solang Valley adventure', 'Atal Tunnel pass', 'Old Manali cafes', 'Jogini Waterfalls'],
     isSaved: false,
+    lat: 32.2396,
+    lon: 77.1887,
   },
   {
     id: 'dest-dubai',
@@ -168,6 +176,8 @@ export const FEATURED_DESTINATIONS: Destination[] = [
     description: 'Futuristic metropolis blending luxury shopping, desert dune safaris, and ultra-modern architecture.',
     highlights: ['Burj Khalifa Sky Deck', 'Desert Safari Camp', 'Dubai Marina Yacht', 'Museum of the Future'],
     isSaved: false,
+    lat: 25.2048,
+    lon: 55.2708,
   },
   {
     id: 'dest-tokyo',
@@ -183,6 +193,8 @@ export const FEATURED_DESTINATIONS: Destination[] = [
     description: 'Dynamic capital seamlessly bridging ancient shrines, Michelin dining, and neon Shibuya crossings.',
     highlights: ['Shibuya Crossing', 'Senso-ji Asakusa', 'TeamLab Planets', 'Tsukiji Outer Market'],
     isSaved: true,
+    lat: 35.6762,
+    lon: 139.6503,
   },
 ];
 

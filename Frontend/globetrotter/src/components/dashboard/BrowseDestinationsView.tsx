@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Destination } from '../../types.ts';
+import { api, PlaceItem } from '../../services/api.ts';
 import {
   Search,
   Star,
@@ -11,6 +12,8 @@ import {
   Compass,
   ArrowUpRight,
   Filter,
+  Globe2,
+  Sparkles,
 } from 'lucide-react';
 
 interface BrowseDestinationsViewProps {
@@ -30,6 +33,55 @@ export const BrowseDestinationsView: React.FC<BrowseDestinationsViewProps> = ({
 }) => {
   const [search, setSearch] = useState(initialSearch);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [extraPlaces, setExtraPlaces] = useState<Destination[]>([]);
+  const [isSearchingGlobal, setIsSearchingGlobal] = useState(false);
+  const timeoutRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (initialSearch) {
+      setSearch(initialSearch);
+    }
+  }, [initialSearch]);
+
+  // Global Places search when query has 2+ characters
+  useEffect(() => {
+    if (search.trim().length >= 2) {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      timeoutRef.current = setTimeout(async () => {
+        setIsSearchingGlobal(true);
+        try {
+          const places = await api.searchPlaces(search.trim());
+          const mapped: Destination[] = places
+            .filter((p) => !destinations.some((d) => d.name.toLowerCase() === p.name.toLowerCase()))
+            .map((p, idx) => ({
+              id: `place-global-${idx}-${Date.now()}`,
+              name: p.name,
+              country: p.country,
+              flag: p.flag || '🌍',
+              category: (p.category as any) || 'cultural',
+              image:
+                'https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=800&q=80',
+              rating: 4.88,
+              reviewsCount: 920,
+              avgCostPerDay: 6500,
+              bestMonths: 'Year-round',
+              description: `Explore historic landmarks, local traditions, and scenic spots in ${p.name}, ${p.country}.`,
+              highlights: ['Local landmarks', 'Culinary culture', 'Scenic viewpoints'],
+              isSaved: false,
+              lat: p.lat,
+              lon: p.lon,
+            }));
+          setExtraPlaces(mapped);
+        } catch {
+          setExtraPlaces([]);
+        } finally {
+          setIsSearchingGlobal(false);
+        }
+      }, 250);
+    } else {
+      setExtraPlaces([]);
+    }
+  }, [search, destinations]);
 
   const categories = [
     { id: 'all', label: 'All Places' },
@@ -39,10 +91,13 @@ export const BrowseDestinationsView: React.FC<BrowseDestinationsViewProps> = ({
     { id: 'city', label: 'City & Modern' },
   ];
 
-  const filtered = destinations.filter((dest) => {
+  const combined = [...destinations, ...extraPlaces];
+
+  const filtered = combined.filter((dest) => {
     const matchesCategory =
       selectedCategory === 'all' || dest.category === selectedCategory;
     const matchesSearch =
+      !search.trim() ||
       dest.name.toLowerCase().includes(search.toLowerCase()) ||
       dest.country.toLowerCase().includes(search.toLowerCase()) ||
       dest.description.toLowerCase().includes(search.toLowerCase());

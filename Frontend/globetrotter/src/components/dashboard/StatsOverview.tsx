@@ -8,6 +8,7 @@ interface StatsOverviewProps {
   destinationsCount: number;
   totalSpent: number;
   currency: string;
+  nextDestination?: string;
   onNavigate: (tab: DashboardTab) => void;
 }
 
@@ -17,10 +18,11 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
   destinationsCount,
   totalSpent,
   currency,
+  nextDestination,
   onNavigate,
 }) => {
   const formatCurrency = (val: number) => {
-    return `${currency}${val.toLocaleString()}`;
+    return `${currency}${(val || 0).toLocaleString()}`;
   };
 
   return (
@@ -52,7 +54,11 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
             Upcoming Trips
           </div>
           <div className="text-[11px] text-[#7f8c8d] mt-1 flex items-center gap-1">
-            <span>Next: Switzerland</span>
+            {nextDestination ? (
+              <span>Next: {nextDestination}</span>
+            ) : (
+              <span>No upcoming journeys</span>
+            )}
           </div>
         </div>
       </div>
@@ -81,7 +87,7 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
             Trips Completed
           </div>
           <div className="text-[11px] text-[#7f8c8d] mt-1">
-            Since Jan 2024
+            {completedCount > 0 ? 'Travel journal active' : '0 completed so far'}
           </div>
         </div>
       </div>
@@ -110,7 +116,7 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
             Destinations Explored
           </div>
           <div className="text-[11px] text-[#7f8c8d] mt-1">
-            Keep exploring!
+            {destinationsCount > 0 ? 'Across your journeys' : 'Start your first trip'}
           </div>
         </div>
       </div>
@@ -139,7 +145,7 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
             Total Spent
           </div>
           <div className="text-[11px] text-[#7f8c8d] mt-1">
-            Across all trips
+            {totalSpent > 0 ? 'Recorded travel expenses' : 'No expenses recorded'}
           </div>
         </div>
       </div>
