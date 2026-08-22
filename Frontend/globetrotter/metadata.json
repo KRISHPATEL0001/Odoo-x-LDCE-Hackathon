@@ -1,0 +1,6 @@
+{
+  "name": "GlobeTrotter",
+  "description": "A modern travel planner application starting with an elegant user onboarding and authentication page.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
